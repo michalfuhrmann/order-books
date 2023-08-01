@@ -3,29 +3,9 @@ package com.mfruhrmann.orderbooks.api;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface OrderBook {
-
-    enum OrderType {
-        //        MARKET,
-        LIMIT,
-//        IMMEDIATE_OR_CANCEL,
-//        FILL_OR_KILL /* whole order  must be filled*/
-    }
-
-    enum Side {
-        BUY, SELL
-    }
-
-    record Order(String id, Side side, OrderType type, Instant ts, double price, int size) {
-    }
-
-    record Trade(String id, String orderId, Instant ts, double price, double size) {
-    }
-
-    record BidAsk(Double bid, Double ask) {
-    }
-
 
     /**
      * Adds a new order to the book. The type of the order
@@ -36,10 +16,6 @@ public interface OrderBook {
     void addTradeListener(OrderBookTradeListener orderBookTradeListener);
 
     Order getOrder(String id);
-
-    enum CancelStatus {
-        CANCELED, NOT_EXISTS
-    }
 
     /**
      * Removes the order from the book.
@@ -56,13 +32,37 @@ public interface OrderBook {
      */
     int getDepth();
 
-
     BidAsk getTopBidAsk();
 
+    Map<Double, Double> getAskLevels();
 
-    Map<String, Double> getAskLevels();
+    Map<Double, Double> getBidLevels();
 
-    Map<String, Double> getBidLevels();
+    enum OrderType {
+        //        MARKET,
+        LIMIT,
+//        IMMEDIATE_OR_CANCEL,
+//        FILL_OR_KILL /* whole order  must be filled*/
+    }
+
+    enum Side {
+        BUY, SELL
+    }
+
+    enum CancelStatus {
+        CANCELED, NOT_EXISTS
+    }
+
+
+    interface OrderBookTradeListener {
+        void onTrade(OrderBook.Trade trade);
+    }
+
+    record Order(String id, Side side, OrderType type, Instant ts, double price, int size) {
+    }
+
+    record Trade(String id, Set<String> orderIds, Instant ts, double price, int size) {
+    }
 
 //    /**
 //     * Returns order book stats such as highest bid, lowest ask, etc.
@@ -74,8 +74,7 @@ public interface OrderBook {
 //     */
 //    void handleException(Exception e);
 
-    interface OrderBookTradeListener {
-        void onTrade(OrderBook.Trade trade);
+    record BidAsk(Double bid, double bidSize, Double ask, double askSize) {
     }
 
 }
