@@ -32,7 +32,7 @@ public class BasicOrderBook implements OrderBook {
 
     @Override
     public synchronized String addOrder(Order order) {
-        BidAsk bidAsk = getBidAsk();
+        BidAsk bidAsk = getTopBidAsk();
         if (order.type() == OrderType.LIMIT) {
             if (order.side() == Side.BUY) {
                 Double bestAsk = bidAsk.ask();
@@ -61,17 +61,17 @@ public class BasicOrderBook implements OrderBook {
 
     private void handleTrade(Order order, TreeMap<Double, Queue<Order>> orderBookSide) {
         int sizeLeftToMatch = order.size();
-        Queue<Order> orders = orderBookSide.getOrDefault(order.price(), new LinkedList<>());
+        Queue<Order> orders = orderBookSide.firstEntry().getValue();
         Iterator<Order> ordersForALevel = orders.iterator();
         while (ordersForALevel.hasNext() && sizeLeftToMatch > 0) {
-            Order matchingBid = ordersForALevel.next();
-            if (matchingBid.size() >= sizeLeftToMatch) {
+            Order match = ordersForALevel.next();
+            if (match.size() >= sizeLeftToMatch) {
                 //remove order
                 ordersForALevel.remove();
-                this.orders.remove(matchingBid.id());
+                this.orders.remove(match.id());
                 //create a trade
-                tradeListeners.forEach(orderBookTradeListener -> orderBookTradeListener.onTrade(new Trade(/**TODO**/"1", Set.of(matchingBid.id(), order.id()), Instant.now(), order.price(), order.size())));
-                sizeLeftToMatch -= matchingBid.size();
+                tradeListeners.forEach(orderBookTradeListener -> orderBookTradeListener.onTrade(new Trade(/**TODO**/"1", Set.of(match.id(), order.id()), Instant.now(), match.price(), match.size())));
+                sizeLeftToMatch -= match.size();
             }
         }
         if (orderBookSide.getOrDefault(order.price(), new LinkedList<>()).isEmpty()) {

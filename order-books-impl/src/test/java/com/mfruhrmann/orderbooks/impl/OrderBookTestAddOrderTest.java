@@ -133,6 +133,45 @@ public class OrderBookTestAddOrderTest {
                 );
     }
 
+    @ParameterizedTest
+    @MethodSource("orderBooks")
+    void shouldCreateTradeIfTwoORdersCross(OrderBook orderBook) {
+        orderBook.addTradeListener(tradeRecorder);
+
+        //Given
+        OrderBook.Order buyOrder = orderManager.createOrder(BUY, LIMIT, 101.0, 1);
+        OrderBook.Order sellOrder = orderManager.createOrder(SELL, LIMIT, 99.0, 1);
+        OrderBook.Order buyOrder2 = orderManager.createOrder(BUY, LIMIT, 101.0, 1);
+        OrderBook.Order sellOrder2 = orderManager.createOrder(SELL, LIMIT, 99.0, 1);
+
+        //when
+        orderBook.addOrder(buyOrder);
+        orderBook.addOrder(sellOrder);
+
+        orderBook.addOrder(sellOrder2);
+        orderBook.addOrder(buyOrder2);
+
+        //Then
+        assertThat(orderBook.getAllOrders()).hasSize(0);
+
+        assertThat(orderBook.getTopBidAsk().bid()).isNull();
+        assertThat(orderBook.getTopBidAsk().bidSize()).isEqualTo(0);
+
+        assertThat(orderBook.getTopBidAsk().ask()).isNull();
+        assertThat(orderBook.getTopBidAsk().askSize()).isEqualTo(0);
+
+        assertThat(tradeRecorder.getTrades()).hasSize(2)
+                .usingFieldByFieldElementComparator()
+                .extracting(
+                        OrderBook.Trade::price,
+                        OrderBook.Trade::size,
+                        OrderBook.Trade::orderIds)
+                .containsExactly(
+                        tuple(101.0, 1, Set.of(buyOrder.id(), sellOrder.id())),
+                        tuple(99.0, 1, Set.of(buyOrder2.id(), sellOrder2.id()))
+                );
+    }
+
     static class TradeRecorder implements OrderBook.OrderBookTradeListener {
         private final List<OrderBook.Trade> trades = new ArrayList<>();
 

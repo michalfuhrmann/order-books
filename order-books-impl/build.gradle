@@ -1,5 +1,6 @@
 plugins {
     id 'java'
+    id "me.champeau.jmh" version "0.7.1"
 }
 
 group 'com.mfuhrmann'
@@ -16,6 +17,10 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.0'
     testImplementation 'org.junit-pioneer:junit-pioneer:2.0.1'
 
+    // https://mvnrepository.com/artifact/org.openjdk.jmh/jmh-core
+    jmh 'org.openjdk.jmh:jmh-core:1.36'
+    // https://mvnrepository.com/artifact/org.openjdk.jmh/jmh-generator-annprocess
+    jmh 'org.openjdk.jmh:jmh-generator-annprocess:1.36'
 }
 
 test {
