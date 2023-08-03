@@ -37,7 +37,6 @@ public class OrderBookAddOrdersBenchmark {
     public void doSetup() {
         OrderManager orderManager = new OrderManager();
         if (orders == null) {
-            System.out.println("regenerated ");
             orders = IntStream.range(0, ORDERS_SIZE)
                     .mapToObj(x -> orderManager.createOrder(OrderBook.Side.values()[(x + 1) % 2], OrderBook.OrderType.LIMIT, 100 + (x % 10) - 5, 1))
                     .toList();
