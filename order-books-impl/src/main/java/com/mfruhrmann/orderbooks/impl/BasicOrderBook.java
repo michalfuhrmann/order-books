@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static com.mfruhrmann.orderbooks.api.OrderBook.CancelStatus.CANCELED;
@@ -25,6 +26,8 @@ import static com.mfruhrmann.orderbooks.api.OrderBook.CancelStatus.CANCELED;
 public class BasicOrderBook implements OrderBook {
 
     private final List<OrderBookTradeListener> tradeListeners = new ArrayList<>();
+
+    private final AtomicLong tradeIdGenerator = new AtomicLong();
 
     private final Map<String, Order> orders = new HashMap<>();
     private final TreeMap<Double, Queue<Order>> asks = new TreeMap<>();
@@ -61,22 +64,31 @@ public class BasicOrderBook implements OrderBook {
 
     private void handleTrade(Order order, TreeMap<Double, Queue<Order>> orderBookSide) {
         int sizeLeftToMatch = order.size();
-        Queue<Order> orders = orderBookSide.firstEntry().getValue();
-        Iterator<Order> ordersForALevel = orders.iterator();
-        while (ordersForALevel.hasNext() && sizeLeftToMatch > 0) {
-            Order match = ordersForALevel.next();
+        Queue<Order> ordersForLevel = orderBookSide.firstEntry().getValue();
+        Iterator<Order> nextWaitingOrder = ordersForLevel.iterator();
+        while (nextWaitingOrder.hasNext() && sizeLeftToMatch > 0) {
+            Order match = nextWaitingOrder.next();
             if (match.size() >= sizeLeftToMatch) {
                 //remove order
-                ordersForALevel.remove();
+                nextWaitingOrder.remove();
                 this.orders.remove(match.id());
                 //create a trade
-                tradeListeners.forEach(orderBookTradeListener -> orderBookTradeListener.onTrade(new Trade(/**TODO**/"1", Set.of(match.id(), order.id()), Instant.now(), match.price(), match.size())));
+                notifyTradeListeners(order, match);
                 sizeLeftToMatch -= match.size();
             }
         }
         if (orderBookSide.getOrDefault(order.price(), new LinkedList<>()).isEmpty()) {
             orderBookSide.remove(order.price());
         }
+    }
+
+    private void notifyTradeListeners(Order order, Order match) {
+        tradeListeners.forEach(orderBookTradeListener -> orderBookTradeListener.onTrade(
+                new Trade(String.valueOf(tradeIdGenerator.incrementAndGet()),
+                        Set.of(match.id(), order.id()),
+                        Instant.now(),
+                        match.price(),
+                        match.size())));
     }
 
     private BidAsk getBidAsk() {
