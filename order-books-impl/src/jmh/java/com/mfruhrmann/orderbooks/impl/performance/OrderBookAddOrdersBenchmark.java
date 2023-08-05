@@ -23,13 +23,13 @@ import java.util.stream.IntStream;
 
 @Warmup(iterations = 2)
 @Measurement(iterations = 3)
-@Fork(value = 1, warmups = 0)
-@BenchmarkMode(Mode.AverageTime)
-@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@Fork(value = 1, warmups = 0, jvmArgs = "-Xmx256m")
+@BenchmarkMode(Mode.Throughput)
+@OutputTimeUnit(TimeUnit.SECONDS)
 @State(Scope.Benchmark)
 public class OrderBookAddOrdersBenchmark {
 
-    public static final int ORDERS_SIZE = 100_000;
+    public static final int ORDERS_SIZE = 1_000_000;  // basic order book roughly 17m addOrders/sec
 
     static List<OrderBook.Order> orders;
 

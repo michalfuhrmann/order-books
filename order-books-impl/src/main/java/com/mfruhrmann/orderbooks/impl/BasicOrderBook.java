@@ -84,7 +84,7 @@ public class BasicOrderBook implements OrderBook {
                     nextOrderIterator.remove();
                     this.orders.remove(nextOrder.id());
 
-                    ordersForLevel.add(0, new Order(nextOrder.id(), nextOrder.side(), nextOrder.type(), nextOrder.ts(), nextOrder.price(), nextOrder.size() - sizeLeftToMatch));
+                    ordersForLevel.add(0, new ImmutbleOrder(nextOrder.id(), nextOrder.side(), nextOrder.type(), nextOrder.ts(), nextOrder.price(), nextOrder.size() - sizeLeftToMatch));
                     //create a trade
                     notifyTradeListeners(incomingOrder, nextOrder, sizeLeftToMatch);
 
@@ -99,7 +99,7 @@ public class BasicOrderBook implements OrderBook {
             }
         }
         if (sizeLeftToMatch > 0) {
-            Order incomingOrderWithNoMatch = new Order(incomingOrder.id(), incomingOrder.side(), incomingOrder.type(), incomingOrder.ts(), incomingOrder.price(), sizeLeftToMatch);
+            Order incomingOrderWithNoMatch = new ImmutbleOrder(incomingOrder.id(), incomingOrder.side(), incomingOrder.type(), incomingOrder.ts(), incomingOrder.price(), sizeLeftToMatch);
             this.orders.put(incomingOrderWithNoMatch.id(), incomingOrderWithNoMatch);
             oppositeSide.computeIfAbsent(incomingOrder.price(), price -> new LinkedList<>()).add(incomingOrderWithNoMatch);
 

@@ -58,21 +58,22 @@ public interface OrderBook {
         void onTrade(OrderBook.Trade trade);
     }
 
-    record Order(String id, Side side, OrderType type, Instant ts, double price, int size) {
+    interface Order {
+        String id();
+
+        Side side();
+
+        OrderType type();
+
+        Instant ts();
+
+        double price();
+
+        int size();
     }
 
     record Trade(String id, Set<String> orderIds, Instant ts, double price, int size) {
     }
-
-//    /**
-//     * Returns order book stats such as highest bid, lowest ask, etc.
-//     */
-//    Map<String, Double> getStats();
-
-//    /**
-//     * A method to handle exceptions or unexpected events in the system.
-//     */
-//    void handleException(Exception e);
 
     record BidAsk(Double bid, double bidSize, Double ask, double askSize) {
     }
