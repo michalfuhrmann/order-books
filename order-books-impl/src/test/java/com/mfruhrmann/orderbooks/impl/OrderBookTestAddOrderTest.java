@@ -135,7 +135,7 @@ public class OrderBookTestAddOrderTest {
 
     @ParameterizedTest
     @MethodSource("orderBooks")
-    void shouldCreateTradeIfTwoORdersCross(OrderBook orderBook) {
+    void shouldCreateTradeIfTwoOrdersCross(OrderBook orderBook) {
         orderBook.addTradeListener(tradeRecorder);
 
         //Given
@@ -169,6 +169,84 @@ public class OrderBookTestAddOrderTest {
                 .containsExactly(
                         tuple(101.0, 1, Set.of(buyOrder.id(), sellOrder.id())),
                         tuple(99.0, 1, Set.of(buyOrder2.id(), sellOrder2.id()))
+                );
+    }
+
+
+    @ParameterizedTest
+    @MethodSource("orderBooks")
+    void shouldMatchAllOrdersThatAreInOrderBook(OrderBook orderBook) {
+        orderBook.addTradeListener(tradeRecorder);
+
+        //Given
+        OrderBook.Order buyOrder1 = orderManager.createOrder(BUY, LIMIT, 102.0, 1);
+        OrderBook.Order buyOrder2 = orderManager.createOrder(BUY, LIMIT, 101.0, 2);
+        OrderBook.Order buyOrder3 = orderManager.createOrder(BUY, LIMIT, 100.0, 4);
+        OrderBook.Order sellOrder = orderManager.createOrder(SELL, LIMIT, 99.0, 7);
+
+        //when
+        orderBook.addOrder(buyOrder1);
+        orderBook.addOrder(buyOrder2);
+        orderBook.addOrder(buyOrder3);
+        orderBook.addOrder(sellOrder);
+
+
+        //Then
+        assertThat(orderBook.getAllOrders()).hasSize(0);
+
+        assertThat(orderBook.getTopBidAsk().bid()).isNull();
+        assertThat(orderBook.getTopBidAsk().bidSize()).isEqualTo(0);
+
+        assertThat(orderBook.getTopBidAsk().ask()).isNull();
+        assertThat(orderBook.getTopBidAsk().askSize()).isEqualTo(0);
+
+        assertThat(tradeRecorder.getTrades()).hasSize(3)
+                .usingFieldByFieldElementComparator()
+                .extracting(
+                        OrderBook.Trade::price,
+                        OrderBook.Trade::size,
+                        OrderBook.Trade::orderIds)
+                .containsExactly(
+                        tuple(102.0, 1, Set.of(buyOrder1.id(), sellOrder.id())),
+                        tuple(101.0, 2, Set.of(buyOrder2.id(), sellOrder.id())),
+                        tuple(100.0, 4, Set.of(buyOrder3.id(), sellOrder.id()))
+                );
+    }
+
+
+    @ParameterizedTest
+    @MethodSource("orderBooks")
+    void shouldMatchOrdersBookUpToLimitAndRestShouldStayInBook(OrderBook orderBook) {
+        orderBook.addTradeListener(tradeRecorder);
+
+        //Given
+        OrderBook.Order sellOrder = orderManager.createOrder(SELL, LIMIT, 102.0, 4);
+        OrderBook.Order buyOrder1 = orderManager.createOrder(BUY, LIMIT, 102.0, 1);
+        OrderBook.Order buyOrder2 = orderManager.createOrder(BUY, LIMIT, 101.0, 2);
+
+        //when
+        orderBook.addOrder(buyOrder1);
+        orderBook.addOrder(buyOrder2);
+        orderBook.addOrder(sellOrder);
+
+
+        //Then
+        assertThat(orderBook.getAllOrders()).hasSize(2);
+
+        assertThat(orderBook.getTopBidAsk().bid()).isEqualTo(101.0);
+        assertThat(orderBook.getTopBidAsk().bidSize()).isEqualTo(2);
+
+        assertThat(orderBook.getTopBidAsk().ask()).isEqualTo(102);
+        assertThat(orderBook.getTopBidAsk().askSize()).isEqualTo(3);
+
+        assertThat(tradeRecorder.getTrades()).hasSize(1)
+                .usingFieldByFieldElementComparator()
+                .extracting(
+                        OrderBook.Trade::price,
+                        OrderBook.Trade::size,
+                        OrderBook.Trade::orderIds)
+                .containsExactly(
+                        tuple(102.0, 1, Set.of(buyOrder1.id(), sellOrder.id()))
                 );
     }
 

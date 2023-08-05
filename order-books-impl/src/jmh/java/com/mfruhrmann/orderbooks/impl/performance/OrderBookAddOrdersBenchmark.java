@@ -21,8 +21,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 
-@Warmup(iterations = 1)
-@Measurement(iterations = 1)
+@Warmup(iterations = 2)
+@Measurement(iterations = 3)
 @Fork(value = 1, warmups = 0)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)

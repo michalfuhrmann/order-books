@@ -10,7 +10,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -25,13 +24,14 @@ import static com.mfruhrmann.orderbooks.api.OrderBook.CancelStatus.CANCELED;
  */
 public class BasicOrderBook implements OrderBook {
 
+    public static final LinkedList<Order> EMPTY_LIST = new LinkedList<>();
     private final List<OrderBookTradeListener> tradeListeners = new ArrayList<>();
 
     private final AtomicLong tradeIdGenerator = new AtomicLong();
 
     private final Map<String, Order> orders = new HashMap<>();
-    private final TreeMap<Double, Queue<Order>> asks = new TreeMap<>();
-    private final TreeMap<Double, Queue<Order>> bids = new TreeMap<>(Comparator.reverseOrder());
+    private final TreeMap<Double, LinkedList<Order>> asks = new TreeMap<>();
+    private final TreeMap<Double, LinkedList<Order>> bids = new TreeMap<>(Comparator.reverseOrder());
 
     @Override
     public synchronized String addOrder(Order order) {
@@ -45,7 +45,7 @@ public class BasicOrderBook implements OrderBook {
                     //we add to the bids
                 } else {
                     //we have a trade
-                    handleTrade(order, asks);
+                    handleTrade(order, asks, bids);
                 }
             } else if (order.side() == Side.SELL) {
                 Double bestBid = bidAsk.bid();
@@ -54,7 +54,7 @@ public class BasicOrderBook implements OrderBook {
                     asks.computeIfAbsent(order.price(), aDouble -> new LinkedList<>()).add(order);
                 } else {
                     //we have a trade
-                    handleTrade(order, bids);
+                    handleTrade(order, bids, asks);
                 }
             }
         }
@@ -62,33 +62,57 @@ public class BasicOrderBook implements OrderBook {
         return order.id();
     }
 
-    private void handleTrade(Order order, TreeMap<Double, Queue<Order>> orderBookSide) {
-        int sizeLeftToMatch = order.size();
-        Queue<Order> ordersForLevel = orderBookSide.firstEntry().getValue();
-        Iterator<Order> nextWaitingOrder = ordersForLevel.iterator();
-        while (nextWaitingOrder.hasNext() && sizeLeftToMatch > 0) {
-            Order match = nextWaitingOrder.next();
-            if (match.size() >= sizeLeftToMatch) {
-                //remove order
-                nextWaitingOrder.remove();
-                this.orders.remove(match.id());
-                //create a trade
-                notifyTradeListeners(order, match);
-                sizeLeftToMatch -= match.size();
+    private void handleTrade(Order incomingOrder, TreeMap<Double, LinkedList<Order>> orderBookSide, TreeMap<Double, LinkedList<Order>> oppositeSide) {
+        int sizeLeftToMatch = incomingOrder.size();
+        Iterator<Map.Entry<Double, LinkedList<Order>>> orderBookIterator = orderBookSide.entrySet().iterator();
+        while (orderBookIterator.hasNext()) {
+            Map.Entry<Double, LinkedList<Order>> nextLevelEntry = orderBookIterator.next();
+            Double price = nextLevelEntry.getKey();
+            LinkedList<Order> ordersForLevel = nextLevelEntry.getValue();
+            Iterator<Order> nextOrderIterator = ordersForLevel.iterator();
+            while (nextOrderIterator.hasNext() && sizeLeftToMatch > 0) {
+                Order nextOrder = nextOrderIterator.next();
+                if (sizeLeftToMatch >= nextOrder.size()) {
+                    //remove order
+                    nextOrderIterator.remove();
+                    this.orders.remove(nextOrder.id());
+                    //create a trade
+                    notifyTradeListeners(incomingOrder, nextOrder, nextOrder.size());
+                    sizeLeftToMatch -= nextOrder.size();
+                } else {
+                    //handle partial order
+                    nextOrderIterator.remove();
+                    this.orders.remove(nextOrder.id());
+
+                    ordersForLevel.add(0, new Order(nextOrder.id(), nextOrder.side(), nextOrder.type(), nextOrder.ts(), nextOrder.price(), nextOrder.size() - sizeLeftToMatch));
+                    //create a trade
+                    notifyTradeListeners(incomingOrder, nextOrder, sizeLeftToMatch);
+
+                    sizeLeftToMatch -= nextOrder.size();
+                }
+            }
+            if (orderBookSide.getOrDefault(incomingOrder.price(), EMPTY_LIST).isEmpty()) {
+                orderBookIterator.remove();
+            }
+            if (incomingOrder.type() == OrderType.LIMIT && price == incomingOrder.price()) {  //we cannot match further trades
+                break;
             }
         }
-        if (orderBookSide.getOrDefault(order.price(), new LinkedList<>()).isEmpty()) {
-            orderBookSide.remove(order.price());
+        if (sizeLeftToMatch > 0) {
+            Order incomingOrderWithNoMatch = new Order(incomingOrder.id(), incomingOrder.side(), incomingOrder.type(), incomingOrder.ts(), incomingOrder.price(), sizeLeftToMatch);
+            this.orders.put(incomingOrderWithNoMatch.id(), incomingOrderWithNoMatch);
+            oppositeSide.computeIfAbsent(incomingOrder.price(), price -> new LinkedList<>()).add(incomingOrderWithNoMatch);
+
         }
     }
 
-    private void notifyTradeListeners(Order order, Order match) {
+    private void notifyTradeListeners(Order order, Order match, int sizeLeftToMatch) {
         tradeListeners.forEach(orderBookTradeListener -> orderBookTradeListener.onTrade(
                 new Trade(String.valueOf(tradeIdGenerator.incrementAndGet()),
                         Set.of(match.id(), order.id()),
                         Instant.now(),
                         match.price(),
-                        match.size())));
+                        sizeLeftToMatch)));
     }
 
     private BidAsk getBidAsk() {
