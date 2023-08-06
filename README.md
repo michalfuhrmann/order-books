@@ -15,4 +15,19 @@ Conclusions so far:
 - mutable and immutable orders comparison
 - Fix ListBasedOrderBook implementation, tests pass but JMH fails so definitely some coverage is missing.
 - Better data distribution
--  
+
+# Results so far from JMH
+
+| Benchmark                                                      | Mode  | Cnt | Score   | Error    | Units  |
+|----------------------------------------------------------------|-------|-----|---------|----------|--------|
+| OrderBookAddOrdersBenchmark.addOrders_basicOrderBook           | thrpt | 3   | 25,658  | ± 8,628  | ops/s  |
+| OrderBookAddOrdersBenchmark.addOrders_basicOrderBookArrayDeque | thrpt | 3   | 24,827  | ± 0,616  | ops/s  |
+| OrderBookAddOrdersBenchmark.addOrders_listBasedOrderBook       | thrpt | 3   | 24,600  | ± 5,671  | ops/s  |
+| OrderBookAddOrdersBenchmark.basicOrder_LevelStacking           | thrpt | 3   | 10,190  | ± 2,324  | ops/s  |
+| OrderBookAddOrdersBenchmark.basicOrder_LevelStacking_V2        | thrpt | 3   | 10,408  | ± 0,754  | ops/s  |
+| ---                                                            | ---   | --- | ---     | ---      | ---    |
+| OrderBookTimeSource.fakeTimeSource                             | thrpt | 3   | 184,061 | ± 12,667 | ops/us |
+| OrderBookTimeSource.instant                                    | thrpt | 3   | 70,764  | ± 1,939  | ops/us |
+| OrderBookTimeSource.nanoTime                                   | thrpt | 3   | 51,296  | ± 1,421  | ops/us |
+| OrderBookTimeSource.tickClock                                  | thrpt | 3   | 67,517  | ± 3,659  | ops/us |
+| OrderBookTimeSource.timeMillis                                 | thrpt | 3   | 350,071 | ± 48,198 | ops/us |
