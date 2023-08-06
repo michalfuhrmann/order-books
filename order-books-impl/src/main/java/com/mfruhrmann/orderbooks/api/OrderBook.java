@@ -32,7 +32,7 @@ public interface OrderBook {
      */
     int getDepth();
 
-    BidAsk getTopBidAsk();
+    TopOrderBook getTopOrderBook();
 
     Map<Double, Double> getAskLevels();
 
@@ -70,13 +70,16 @@ public interface OrderBook {
         double price();
 
         int size();
+
+        Order withNewSize(int size);
     }
 
-    record Trade(String id, Set<String> orderIds, Instant ts, double price, int size) {
+    record Trade(String id, Set<String> orderIds, long ts, double price, int size) {
     }
 
-    record BidAsk(Double bid, double bidSize, Double ask, double askSize) {
+    record TopOrderBook(Double bid, double bidSize, Double ask, double askSize) {
     }
+
 
 }
 

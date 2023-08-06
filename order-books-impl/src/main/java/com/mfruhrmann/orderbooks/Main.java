@@ -4,30 +4,49 @@ import com.mfruhrmann.orderbooks.api.OrderBook;
 import com.mfruhrmann.orderbooks.impl.BasicOrderBook;
 import com.mfruhrmann.orderbooks.utils.OrderManager;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 public class Main {
 
+    public static final int ORDERS = 10_000_000;
     private static final OrderManager ORDER_MANAGER = new OrderManager();
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
 
 
-        BasicOrderBook basicOrderBook = new BasicOrderBook();
-
-        List<OrderBook.Trade> trades = new ArrayList<>();
-        basicOrderBook.addTradeListener(trades::add);
-
+//        Thread.sleep(10_000);
         OrderManager orderManager = new OrderManager();
 
-        IntStream.range(0, 1_000_000)
-                .mapToObj(x -> orderManager.createOrder(OrderBook.Side.values()[(x + 1) % 2], OrderBook.OrderType.LIMIT, 100 + (x % 10) - 5, 1))
-                .forEach(basicOrderBook::addOrder);
+//        OrderBook orderBook = new ListBasedOrderBook(1);
+        OrderBook orderBook = new BasicOrderBook();
 
-        System.out.println(basicOrderBook.getAllOrders());
-        System.out.println(trades.size());
+        AtomicInteger atomicInteger = new AtomicInteger();
+        orderBook.addTradeListener(trade -> atomicInteger.incrementAndGet());
+
+
+        IntStream.range(0, ORDERS)
+                .mapToObj(x -> orderManager.createOrder(OrderBook.Side.values()[(x + 1) % 2], OrderBook.OrderType.LIMIT, 100 + (x % 10) - 5, 1))
+                .forEach(orderBook::addOrder);
+
+        System.out.println(orderBook.getAllOrders());
+        System.out.println(atomicInteger.get());
+
+
+//        basicOrderBook = new BasicOrderBook();
+//        basicOrderBook.addTradeListener(trades::add);
+//
+//
+//        IntStream.range(0, 1_000_000)
+//                .mapToObj(x -> {
+//                    OrderBook.Side value = OrderBook.Side.values()[x % 2];
+//                    int delta = value == OrderBook.Side.BUY ? -(x % 5) : x % 5;
+//                    return orderManager.createOrder(value, OrderBook.OrderType.LIMIT, 100 + delta, 1);
+//                })
+//                .forEach(basicOrderBook::addOrder);
+//
+//        System.out.println(basicOrderBook.getAllOrders().size());
+//        System.out.println(trades.size());
 
     }
 }

@@ -1,14 +1,12 @@
 package com.mfruhrmann.orderbooks.impl;
 
 import com.mfruhrmann.orderbooks.api.OrderBook;
-import com.mfruhrmann.orderbooks.api.time.TimeSource;
-import com.mfruhrmann.orderbooks.impl.time.SystemMillisTImesource;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,13 +17,11 @@ import java.util.stream.Collectors;
 import static com.mfruhrmann.orderbooks.api.OrderBook.CancelStatus.CANCELED;
 
 /**
- * Basic implementation of the order book serving as a foundation for further improvements and as a baseline for performance comparison.
- * This implementation is thread-safe but the thread safety is done in a very basic way where we synchronize on the whole class,
- * so the performance of this implementation is expected to be relatively the lowest.
+ * The only difference is underlying collection that stores orders for a given level. In this implementation it's ArrayDeque.
  */
-public class BasicOrderBook implements OrderBook {
+public class BasicOrderBookArrayDeque implements OrderBook {
 
-    public static final Deque<Order> EMPTY_LIST = new LinkedList<>();
+    public static final Deque<Order> EMPTY_LIST = new ArrayDeque<>();
     private final List<OrderBookTradeListener> tradeListeners = new ArrayList<>();
 
     private final AtomicLong tradeIdGenerator = new AtomicLong();
@@ -34,7 +30,9 @@ public class BasicOrderBook implements OrderBook {
     private final TreeMap<Double, Deque<Order>> asks = new TreeMap<>();
     private final TreeMap<Double, Deque<Order>> bids = new TreeMap<>(Comparator.reverseOrder());
 
-    private final TimeSource timeSource = new SystemMillisTImesource(); // can be arg in future
+    private static long getCurrentTime() {
+        return System.nanoTime();
+    }
 
     @Override
     public synchronized String addOrder(Order order) {
@@ -44,7 +42,7 @@ public class BasicOrderBook implements OrderBook {
                 Double bestAsk = bidAsk.ask();
                 if (bestAsk == null || bestAsk > order.price()) {
                     orders.put(order.id(), order);
-                    bids.computeIfAbsent(order.price(), aDouble -> new LinkedList<>()).add(order);
+                    bids.computeIfAbsent(order.price(), aDouble -> new ArrayDeque<>()).add(order);
                     //we add to the bids
                 } else {
                     //we have a trade
@@ -54,7 +52,7 @@ public class BasicOrderBook implements OrderBook {
                 Double bestBid = bidAsk.bid();
                 if (bestBid == null || bestBid < order.price()) {
                     orders.put(order.id(), order);
-                    asks.computeIfAbsent(order.price(), aDouble -> new LinkedList<>()).add(order);
+                    asks.computeIfAbsent(order.price(), aDouble -> new ArrayDeque<>()).add(order);
                 } else {
                     //we have a trade
                     handleTrade(order, bids, asks);
@@ -104,10 +102,9 @@ public class BasicOrderBook implements OrderBook {
             }
         }
         if (sizeLeftToMatch > 0) {
-            Order incomingOrderWithNoMatch = new ImmutableOrder(incomingOrder.id(), incomingOrder.side(), incomingOrder.type(), incomingOrder.ts(), incomingOrder.price(), sizeLeftToMatch);
+            Order incomingOrderWithNoMatch = incomingOrder.withNewSize(sizeLeftToMatch);
             this.orders.put(incomingOrderWithNoMatch.id(), incomingOrderWithNoMatch);
-            oppositeSide.computeIfAbsent(incomingOrder.price(), price -> new LinkedList<>()).add(incomingOrderWithNoMatch);
-
+            oppositeSide.computeIfAbsent(incomingOrder.price(), price -> new ArrayDeque<>()).add(incomingOrderWithNoMatch);
         }
     }
 
@@ -115,7 +112,7 @@ public class BasicOrderBook implements OrderBook {
         tradeListeners.forEach(orderBookTradeListener -> orderBookTradeListener.onTrade(
                 new Trade(String.valueOf(tradeIdGenerator.incrementAndGet()),
                         Set.of(match.id(), order.id()),
-                        timeSource.getCurrentTime(),
+                        getCurrentTime(),
                         match.price(),
                         sizeLeftToMatch)));
     }
@@ -126,7 +123,6 @@ public class BasicOrderBook implements OrderBook {
         var ask = asks.isEmpty() || asks.firstEntry().getValue().isEmpty() ? null : asks.firstKey();
         return new BidAsk(bid, ask);
     }
-
 
     @Override
     public void addTradeListener(OrderBookTradeListener orderBookTradeListener) {

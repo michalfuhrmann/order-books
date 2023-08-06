@@ -24,7 +24,11 @@ public class OrderBookTestAddOrderTest {
     private final TradeRecorder tradeRecorder = new TradeRecorder();
 
     public static Stream<Arguments> orderBooks() {
-        return Stream.of(Arguments.of(new BasicOrderBook()));
+        return Stream.of(
+//                        new BasicOrderBook(),
+//                        new BasicOrderBookArrayDeque(),
+                        new ListBasedOrderBook(1))
+                .map(Arguments::of);
     }
 
 
@@ -40,7 +44,7 @@ public class OrderBookTestAddOrderTest {
 
         //Then
         assertThat(orderBook.getAllOrders()).hasSize(1);
-        assertThat(orderBook.getTopBidAsk().bid()).isEqualTo(100.0);
+        assertThat(orderBook.getTopOrderBook().bid()).isEqualTo(100.0);
         assertThat(orderId).isNotNull();
         assertThat(orderBook.getOrder(orderId)).isEqualTo(buyOrder);
     }
@@ -59,8 +63,8 @@ public class OrderBookTestAddOrderTest {
 
         //Then
         assertThat(orderBook.getAllOrders()).hasSize(2);
-        assertThat(orderBook.getTopBidAsk().bid()).isEqualTo(100.0);
-        assertThat(orderBook.getTopBidAsk().ask()).isEqualTo(101.0);
+        assertThat(orderBook.getTopOrderBook().bid()).isEqualTo(100.0);
+        assertThat(orderBook.getTopOrderBook().ask()).isEqualTo(101.0);
     }
 
     @ParameterizedTest
@@ -83,13 +87,13 @@ public class OrderBookTestAddOrderTest {
         //Then
         assertThat(orderBook.getAllOrders()).hasSize(4);
 
-        assertThat(orderBook.getTopBidAsk().bid()).isEqualTo(100.0);
-        assertThat(orderBook.getTopBidAsk().bidSize()).isEqualTo(3);
+        assertThat(orderBook.getTopOrderBook().bid()).isEqualTo(100.0);
+        assertThat(orderBook.getTopOrderBook().bidSize()).isEqualTo(3);
         assertThat(orderBook.getBidLevels()).containsOnlyKeys(100.0);
         assertThat(orderBook.getBidLevels().get(100.0)).isEqualTo(3);
 
-        assertThat(orderBook.getTopBidAsk().ask()).isEqualTo(101.0);
-        assertThat(orderBook.getTopBidAsk().askSize()).isEqualTo(6);
+        assertThat(orderBook.getTopOrderBook().ask()).isEqualTo(101.0);
+        assertThat(orderBook.getTopOrderBook().askSize()).isEqualTo(6);
         assertThat(orderBook.getAskLevels()).containsOnlyKeys(101.0);
         assertThat(orderBook.getAskLevels().get(101.0)).isEqualTo(6);
     }
@@ -115,11 +119,11 @@ public class OrderBookTestAddOrderTest {
         //Then
         assertThat(orderBook.getAllOrders()).hasSize(0);
 
-        assertThat(orderBook.getTopBidAsk().bid()).isNull();
-        assertThat(orderBook.getTopBidAsk().bidSize()).isEqualTo(0);
+        assertThat(orderBook.getTopOrderBook().bid()).isNull();
+        assertThat(orderBook.getTopOrderBook().bidSize()).isEqualTo(0);
 
-        assertThat(orderBook.getTopBidAsk().ask()).isNull();
-        assertThat(orderBook.getTopBidAsk().askSize()).isEqualTo(0);
+        assertThat(orderBook.getTopOrderBook().ask()).isNull();
+        assertThat(orderBook.getTopOrderBook().askSize()).isEqualTo(0);
 
         assertThat(tradeRecorder.getTrades()).hasSize(2)
                 .usingFieldByFieldElementComparator()
@@ -154,11 +158,11 @@ public class OrderBookTestAddOrderTest {
         //Then
         assertThat(orderBook.getAllOrders()).hasSize(0);
 
-        assertThat(orderBook.getTopBidAsk().bid()).isNull();
-        assertThat(orderBook.getTopBidAsk().bidSize()).isEqualTo(0);
+        assertThat(orderBook.getTopOrderBook().bid()).isNull();
+        assertThat(orderBook.getTopOrderBook().bidSize()).isEqualTo(0);
 
-        assertThat(orderBook.getTopBidAsk().ask()).isNull();
-        assertThat(orderBook.getTopBidAsk().askSize()).isEqualTo(0);
+        assertThat(orderBook.getTopOrderBook().ask()).isNull();
+        assertThat(orderBook.getTopOrderBook().askSize()).isEqualTo(0);
 
         assertThat(tradeRecorder.getTrades()).hasSize(2)
                 .usingFieldByFieldElementComparator()
@@ -194,11 +198,11 @@ public class OrderBookTestAddOrderTest {
         //Then
         assertThat(orderBook.getAllOrders()).hasSize(0);
 
-        assertThat(orderBook.getTopBidAsk().bid()).isNull();
-        assertThat(orderBook.getTopBidAsk().bidSize()).isEqualTo(0);
+        assertThat(orderBook.getTopOrderBook().bid()).isNull();
+        assertThat(orderBook.getTopOrderBook().bidSize()).isEqualTo(0);
 
-        assertThat(orderBook.getTopBidAsk().ask()).isNull();
-        assertThat(orderBook.getTopBidAsk().askSize()).isEqualTo(0);
+        assertThat(orderBook.getTopOrderBook().ask()).isNull();
+        assertThat(orderBook.getTopOrderBook().askSize()).isEqualTo(0);
 
         assertThat(tradeRecorder.getTrades()).hasSize(3)
                 .usingFieldByFieldElementComparator()
@@ -233,11 +237,11 @@ public class OrderBookTestAddOrderTest {
         //Then
         assertThat(orderBook.getAllOrders()).hasSize(2);
 
-        assertThat(orderBook.getTopBidAsk().bid()).isEqualTo(101.0);
-        assertThat(orderBook.getTopBidAsk().bidSize()).isEqualTo(2);
+        assertThat(orderBook.getTopOrderBook().bid()).isEqualTo(101.0);
+        assertThat(orderBook.getTopOrderBook().bidSize()).isEqualTo(2);
 
-        assertThat(orderBook.getTopBidAsk().ask()).isEqualTo(102);
-        assertThat(orderBook.getTopBidAsk().askSize()).isEqualTo(3);
+        assertThat(orderBook.getTopOrderBook().ask()).isEqualTo(102);
+        assertThat(orderBook.getTopOrderBook().askSize()).isEqualTo(3);
 
         assertThat(tradeRecorder.getTrades()).hasSize(1)
                 .usingFieldByFieldElementComparator()
